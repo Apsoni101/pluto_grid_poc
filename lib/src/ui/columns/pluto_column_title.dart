@@ -164,10 +164,10 @@ class PlutoColumnTitleState extends PlutoStateWithChange<PlutoColumnTitle> {
           right: 0,
           child: widget.column.enableColumnDrag
               ? _DraggableWidget(
-                  stateManager: stateManager,
-                  column: widget.column,
-                  child: columnWidget,
-                )
+            stateManager: stateManager,
+            column: widget.column,
+            child: columnWidget,
+          )
               : columnWidget,
         ),
         if (showContextIcon)
@@ -176,11 +176,11 @@ class PlutoColumnTitleState extends PlutoStateWithChange<PlutoColumnTitle> {
             end: -3,
             child: enableGesture
                 ? Listener(
-                    onPointerDown: _handleOnPointDown,
-                    onPointerMove: _handleOnPointMove,
-                    onPointerUp: _handleOnPointUp,
-                    child: contextMenuIcon,
-                  )
+              onPointerDown: _handleOnPointDown,
+              onPointerMove: _handleOnPointMove,
+              onPointerUp: _handleOnPointUp,
+              child: contextMenuIcon,
+            )
                 : contextMenuIcon,
           ),
       ],
@@ -214,19 +214,19 @@ class PlutoGridColumnIcon extends StatelessWidget {
       case PlutoColumnSort.ascending:
         return ascendingIcon == null
             ? Transform.rotate(
-                angle: 90 * pi / 90,
-                child: const Icon(
-                  Icons.sort,
-                  color: Colors.green,
-                ),
-              )
+          angle: 90 * pi / 90,
+          child: const Icon(
+            Icons.sort,
+            color: Colors.green,
+          ),
+        )
             : ascendingIcon!;
       case PlutoColumnSort.descending:
         return descendingIcon == null
             ? const Icon(
-                Icons.sort,
-                color: Colors.red,
-              )
+          Icons.sort,
+          color: Colors.red,
+        )
             : descendingIcon!;
       default:
         return Icon(
@@ -264,6 +264,143 @@ class _DraggableWidget extends StatelessWidget {
     );
   }
 
+  Color _getRowColor(int rowIdx, PlutoRow row) {
+    final isCurrentRow = stateManager.currentRowIdx == rowIdx;
+    final isCheckedRow = row.checked == true;
+    final isDragTarget = stateManager.isDraggingRow &&
+        stateManager.isRowIdxDragTarget(rowIdx);
+
+    if (isDragTarget) {
+      return stateManager.configuration.style.cellColorInReadOnlyState;
+    }
+
+    Color color;
+    if (stateManager.rowColorCallback != null) {
+      color = stateManager.rowColorCallback!(
+        PlutoRowColorContext(
+          rowIdx: rowIdx,
+          row: row,
+          stateManager: stateManager,
+        ),
+      );
+    } else {
+      color = rowIdx % 2 == 0
+          ? stateManager.configuration.style.oddRowColor ??
+          stateManager.configuration.style.rowColor
+          : stateManager.configuration.style.evenRowColor ??
+          stateManager.configuration.style.rowColor;
+    }
+
+    if ((stateManager.selectingMode.isRow && stateManager.isSelectedRow(row.key)) ||
+        (isCurrentRow && !stateManager.selectingMode.isRow)) {
+      color = stateManager.configuration.style.activatedColor;
+    }
+
+    if (isCheckedRow) {
+      color = Color.alphaBlend(
+        stateManager.configuration.style.checkedColor,
+        color,
+      );
+    }
+
+    return color;
+  }
+
+  Widget _buildDragFeedback(BuildContext context) {
+    final columnWidth = column.width;
+    final columnHeight = stateManager.columnHeight;
+    final rows = stateManager.refRows;
+    final rowHeight = stateManager.rowHeight;
+
+    return Container(
+      width: columnWidth,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      decoration: BoxDecoration(
+        color: stateManager.configuration.style.gridBackgroundColor,
+        border: Border.all(
+          color: stateManager.configuration.style.gridBorderColor,
+          width: 1.0,
+        ),
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Column header
+            Container(
+              width: columnWidth,
+              height: columnHeight,
+              padding: column.titlePadding ??
+                  stateManager.configuration.style.defaultColumnTitlePadding,
+              decoration: BoxDecoration(
+                color: column.backgroundColor,
+                border: Border(
+                  bottom: BorderSide(
+                    color: stateManager.configuration.style.borderColor,
+                    width: PlutoGridSettings.rowBorderWidth,
+                  ),
+                ),
+              ),
+              alignment: column.titleTextAlign.alignmentValue,
+              child: _ColumnTextWidget(
+                column: column,
+                stateManager: stateManager,
+                height: columnHeight,
+              ),
+            ),
+            // Column cells
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: rows.map((row) {
+                    final rowIdx = rows.indexOf(row);
+                    final cell = row.cells[column.field]!;
+                    return Container(
+                      width: columnWidth,
+                      height: rowHeight,
+                      decoration: BoxDecoration(
+                        color: _getRowColor(rowIdx, row),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: stateManager.configuration.style.borderColor,
+                            width: PlutoGridSettings.rowBorderWidth,
+                          ),
+                        ),
+                      ),
+                      alignment: column.textAlign.alignmentValue,
+                      padding: column.cellPadding ??
+                          stateManager.configuration.style.defaultCellPadding,
+                      child: Text(
+                        cell.value.toString(),
+                        style: stateManager.configuration.style.columnTextStyle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        softWrap: false,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Listener(
@@ -272,25 +409,10 @@ class _DraggableWidget extends StatelessWidget {
       child: Draggable<PlutoColumn>(
         data: column,
         dragAnchorStrategy: pointerDragAnchorStrategy,
-        feedback: FractionalTranslation(
-          translation: const Offset(-0.5, -0.5),
-          child: PlutoShadowContainer(
-            alignment: column.titleTextAlign.alignmentValue,
-            width: PlutoGridSettings.minColumnWidth,
-            height: stateManager.columnHeight,
-            backgroundColor:
-                stateManager.configuration.style.gridBackgroundColor,
-            borderColor: stateManager.configuration.style.gridBorderColor,
-            child: Text(
-              column.title,
-              style: stateManager.configuration.style.columnTextStyle.copyWith(
-                fontSize: 12,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              softWrap: false,
-            ),
-          ),
+        feedback: _buildDragFeedback(context),
+        childWhenDragging: Opacity(
+          opacity: 0.5,
+          child: child,
         ),
         child: child,
       ),
@@ -319,13 +441,13 @@ class _SortableWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return column.enableSorting
         ? MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              key: const ValueKey('ColumnTitleSortableGesture'),
-              onTap: _onTap,
-              child: child,
-            ),
-          )
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        key: const ValueKey('ColumnTitleSortableGesture'),
+        onTap: _onTap,
+        child: child,
+      ),
+    )
         : child;
   }
 }
@@ -345,11 +467,11 @@ class _ColumnWidget extends StatelessWidget {
 
   EdgeInsets get padding =>
       column.titlePadding ??
-      stateManager.configuration.style.defaultColumnTitlePadding;
+          stateManager.configuration.style.defaultColumnTitlePadding;
 
   bool get showSizedBoxForIcon =>
       column.isShowRightIcon &&
-      (column.titleTextAlign.isRight || stateManager.isRTL);
+          (column.titleTextAlign.isRight || stateManager.isRTL);
 
   @override
   Widget build(BuildContext context) {
@@ -529,24 +651,24 @@ class _ColumnTextWidgetState extends PlutoStateWithChange<_ColumnTextWidget> {
       widget.column.titleSpan == null ? widget.column.title : null;
 
   List<InlineSpan> get _children => [
-        if (widget.column.titleSpan != null) widget.column.titleSpan!,
-        if (_isFilteredList)
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: IconButton(
-              icon: Icon(
-                Icons.filter_alt_outlined,
-                color: stateManager.configuration.style.iconColor,
-                size: stateManager.configuration.style.iconSize,
-              ),
-              onPressed: _handleOnPressedFilter,
-              constraints: BoxConstraints(
-                maxHeight:
-                    widget.height + (PlutoGridSettings.rowBorderWidth * 2),
-              ),
-            ),
+    if (widget.column.titleSpan != null) widget.column.titleSpan!,
+    if (_isFilteredList)
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: IconButton(
+          icon: Icon(
+            Icons.filter_alt_outlined,
+            color: stateManager.configuration.style.iconColor,
+            size: stateManager.configuration.style.iconSize,
           ),
-      ];
+          onPressed: _handleOnPressedFilter,
+          constraints: BoxConstraints(
+            maxHeight:
+            widget.height + (PlutoGridSettings.rowBorderWidth * 2),
+          ),
+        ),
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) {
