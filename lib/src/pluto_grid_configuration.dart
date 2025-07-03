@@ -8,6 +8,9 @@ class PlutoGridConfiguration {
   /// When you select a value in the pop-up grid, it moves down.
   final bool enableMoveDownAfterSelecting;
 
+  /// Whether to enable hover effects on rows
+  final bool enableRowHoverColor;
+
   /// Moves the current cell when focus reaches the left or right edge in the edit state.
   final bool enableMoveHorizontalInEditing;
 
@@ -74,6 +77,7 @@ class PlutoGridConfiguration {
   final PlutoGridLocaleText localeText;
 
   const PlutoGridConfiguration({
+    this.enableRowHoverColor = true,
     this.enableMoveDownAfterSelecting = false,
     this.enableMoveHorizontalInEditing = false,
     this.enterKeyAction = PlutoGridEnterKeyAction.editingAndMoveDown,
@@ -87,6 +91,7 @@ class PlutoGridConfiguration {
   });
 
   const PlutoGridConfiguration.dark({
+    this.enableRowHoverColor = true,
     this.enableMoveDownAfterSelecting = false,
     this.enableMoveHorizontalInEditing = false,
     this.enterKeyAction = PlutoGridEnterKeyAction.editingAndMoveDown,
@@ -128,18 +133,18 @@ class PlutoGridConfiguration {
     }
   }
 
-  PlutoGridConfiguration copyWith({
-    bool? enableMoveDownAfterSelecting,
-    bool? enableMoveHorizontalInEditing,
-    PlutoGridEnterKeyAction? enterKeyAction,
-    PlutoGridTabKeyAction? tabKeyAction,
-    PlutoGridShortcut? shortcut,
-    PlutoGridStyleConfig? style,
-    PlutoGridScrollbarConfig? scrollbar,
-    PlutoGridColumnFilterConfig? columnFilter,
-    PlutoGridColumnSizeConfig? columnSize,
-    PlutoGridLocaleText? localeText,
-  }) {
+  PlutoGridConfiguration copyWith(
+      {bool? enableMoveDownAfterSelecting,
+      bool? enableMoveHorizontalInEditing,
+      PlutoGridEnterKeyAction? enterKeyAction,
+      PlutoGridTabKeyAction? tabKeyAction,
+      PlutoGridShortcut? shortcut,
+      PlutoGridStyleConfig? style,
+      PlutoGridScrollbarConfig? scrollbar,
+      PlutoGridColumnFilterConfig? columnFilter,
+      PlutoGridColumnSizeConfig? columnSize,
+      PlutoGridLocaleText? localeText,
+      bool? enableRowHoverColor}) {
     return PlutoGridConfiguration(
       enableMoveDownAfterSelecting:
           enableMoveDownAfterSelecting ?? this.enableMoveDownAfterSelecting,
@@ -153,6 +158,7 @@ class PlutoGridConfiguration {
       columnFilter: columnFilter ?? this.columnFilter,
       columnSize: columnSize ?? this.columnSize,
       localeText: localeText ?? this.localeText,
+      enableRowHoverColor: enableRowHoverColor ?? this.enableRowHoverColor,
     );
   }
 
@@ -192,6 +198,9 @@ class PlutoGridConfiguration {
 
 class PlutoGridStyleConfig {
   const PlutoGridStyleConfig({
+    this.enableSelectedRowBorder = true,
+    this.selectedRowBorderColor = const Color(0xFF2196F3),
+    this.rowHoverColor = const Color(0x10000000),
     this.enableGridBorderShadow = false,
     this.enableColumnBorderVertical = true,
     this.enableColumnBorderHorizontal = true,
@@ -248,6 +257,9 @@ class PlutoGridStyleConfig {
   });
 
   const PlutoGridStyleConfig.dark({
+    this.enableSelectedRowBorder = true, // Add this line
+    this.selectedRowBorderColor = const Color(0xFF2196F3), // Light blue default
+    this.rowHoverColor = const Color(0x10000000),
     this.enableGridBorderShadow = false,
     this.enableColumnBorderVertical = true,
     this.enableColumnBorderHorizontal = true,
@@ -306,6 +318,10 @@ class PlutoGridStyleConfig {
   /// Enable borderShadow in [PlutoGrid].
   final bool enableGridBorderShadow;
 
+  final bool enableSelectedRowBorder;
+
+  final Color selectedRowBorderColor;
+
   /// Enable the vertical border of [PlutoColumn] and [PlutoColumnGroup].
   final bool enableColumnBorderVertical;
 
@@ -328,6 +344,9 @@ class PlutoGridStyleConfig {
   ///
   /// If [PlutoGrid.rowColorCallback] is set, rowColorCallback takes precedence.
   final Color rowColor;
+
+  ///  Color that appears when i hover on rows
+  final Color rowHoverColor;
 
   /// Background color for odd rows
   ///
@@ -449,6 +468,8 @@ class PlutoGridStyleConfig {
   final BorderRadiusGeometry gridPopupBorderRadius;
 
   PlutoGridStyleConfig copyWith({
+    bool? enableSelectedRowBorder,
+    Color? selectedRowBorderColor,
     bool? enableGridBorderShadow,
     bool? enableColumnBorderVertical,
     bool? enableColumnBorderHorizontal,
@@ -492,6 +513,10 @@ class PlutoGridStyleConfig {
     BorderRadiusGeometry? gridPopupBorderRadius,
   }) {
     return PlutoGridStyleConfig(
+      selectedRowBorderColor:
+      selectedRowBorderColor ?? this.selectedRowBorderColor,
+      enableSelectedRowBorder:
+      enableSelectedRowBorder ?? this.enableSelectedRowBorder,
       enableGridBorderShadow:
           enableGridBorderShadow ?? this.enableGridBorderShadow,
       enableColumnBorderVertical:
@@ -602,11 +627,16 @@ class PlutoGridStyleConfig {
             rowGroupCollapsedIcon == other.rowGroupCollapsedIcon &&
             rowGroupEmptyIcon == other.rowGroupEmptyIcon &&
             gridBorderRadius == other.gridBorderRadius &&
-            gridPopupBorderRadius == other.gridPopupBorderRadius;
+            gridPopupBorderRadius == other.gridPopupBorderRadius &&
+            selectedRowBorderColor == other.selectedRowBorderColor &&
+            enableSelectedRowBorder == other.enableSelectedRowBorder;
+    ;
   }
 
   @override
   int get hashCode => Object.hashAll([
+        selectedRowBorderColor,
+        enableSelectedRowBorder,
         enableGridBorderShadow,
         enableColumnBorderVertical,
         enableColumnBorderHorizontal,
