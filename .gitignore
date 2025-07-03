@@ -124,3 +124,9 @@ example/.dart_tool/
 /macos/
 /windows/
 /build/
+# ignore everything in example/
+example/*
+
+# but do NOT ignore lib folder and main.dart
+!example/lib/
+!example/lib/main.dart
