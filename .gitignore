@@ -112,3 +112,15 @@ example/.dart_tool/
 
 # Other
 *.lock
+# Add these to your existing .gitignore
+.metadata
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+/android/
+/ios/
+/linux/
+/macos/
+/windows/
+/build/
