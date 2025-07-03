@@ -269,6 +269,15 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
       }
     }
 
+    // Apply hover effect if this row is the hovered row
+    if (stateManager.isRowHovered(widget.row) &&
+        stateManager.configuration.enableRowHoverColor) {
+      color = Color.alphaBlend(
+        stateManager.configuration.style.rowHoverColor,
+        color,
+      );
+    }
+
     return isCheckedRow
         ? Color.alphaBlend(stateManager.configuration.style.checkedColor, color)
         : color;
@@ -276,30 +285,21 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
 
   BoxDecoration _getBoxDecoration() {
     final bool isCurrentRow = stateManager.currentRowIdx == widget.rowIdx;
-
     final bool isSelecting = stateManager.isSelecting;
-
     final bool isCheckedRow = widget.row.checked == true;
-
     final alreadyTarget = stateManager.dragRows
             .firstWhereOrNull((element) => element.key == widget.row.key) !=
         null;
-
     final isDraggingRow = stateManager.isDraggingRow;
-
     final bool isDragTarget = isDraggingRow &&
         !alreadyTarget &&
         stateManager.isRowIdxDragTarget(widget.rowIdx);
-
     final bool isTopDragTarget =
         isDraggingRow && stateManager.isRowIdxTopDragTarget(widget.rowIdx);
-
     final bool isBottomDragTarget =
         isDraggingRow && stateManager.isRowIdxBottomDragTarget(widget.rowIdx);
-
     final bool hasCurrentSelectingPosition =
         stateManager.hasCurrentSelectingPosition;
-
     final bool isFocusedCurrentRow = isCurrentRow && stateManager.hasFocus;
 
     final Color rowColor = _getRowColor(
@@ -310,26 +310,49 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
       isCheckedRow: isCheckedRow,
     );
 
+    final bool isSelectedRow = stateManager.selectingMode.isRow &&
+        stateManager.isSelectedRow(widget.row.key);
+    final bool showSelectedBorder = stateManager
+            .configuration.style.enableSelectedRowBorder &&
+        (isSelectedRow || (isCurrentRow && !stateManager.selectingMode.isRow));
+
+    final BorderSide topBorder = isTopDragTarget
+        ? BorderSide(
+            width: PlutoGridSettings.rowBorderWidth,
+            color: stateManager.configuration.style.activatedBorderColor,
+          )
+        : showSelectedBorder
+            ? BorderSide(
+                width: PlutoGridSettings.rowBorderWidth,
+                color: stateManager.configuration.style.selectedRowBorderColor,
+              )
+            : BorderSide.none;
+
+    final BorderSide bottomBorder = isBottomDragTarget
+        ? BorderSide(
+            width: PlutoGridSettings.rowBorderWidth,
+            color: stateManager.configuration.style.activatedBorderColor,
+          )
+        : stateManager.configuration.style.enableCellBorderHorizontal
+            ? BorderSide(
+                width: PlutoGridSettings.rowBorderWidth,
+                color: showSelectedBorder
+                    ? stateManager.configuration.style.selectedRowBorderColor
+                    : stateManager.configuration.style.borderColor,
+              )
+            : showSelectedBorder
+                ? BorderSide(
+                    width: PlutoGridSettings.rowBorderWidth,
+                    color:
+                        stateManager.configuration.style.selectedRowBorderColor,
+                  )
+                : BorderSide.none;
+
     return BoxDecoration(
       color: rowColor,
       border: Border(
-        top: isTopDragTarget
-            ? BorderSide(
-                width: PlutoGridSettings.rowBorderWidth,
-                color: stateManager.configuration.style.activatedBorderColor,
-              )
-            : BorderSide.none,
-        bottom: isBottomDragTarget
-            ? BorderSide(
-                width: PlutoGridSettings.rowBorderWidth,
-                color: stateManager.configuration.style.activatedBorderColor,
-              )
-            : stateManager.configuration.style.enableCellBorderHorizontal
-                ? BorderSide(
-                    width: PlutoGridSettings.rowBorderWidth,
-                    color: stateManager.configuration.style.borderColor,
-                  )
-                : BorderSide.none,
+        top: topBorder,
+        bottom: bottomBorder,
       ),
     );
   }
@@ -338,10 +361,22 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return _AnimatedOrNormalContainer(
-      enable: widget.enableRowColorAnimation,
-      decoration: _decoration,
-      child: widget.child,
+    return MouseRegion(
+      onEnter: (_) {
+        if (widget.stateManager.configuration.enableRowHoverColor) {
+          widget.stateManager.setHoveredRow(widget.row);
+        }
+      },
+      onExit: (_) {
+        if (widget.stateManager.configuration.enableRowHoverColor) {
+          widget.stateManager.clearHoveredRow();
+        }
+      },
+      child: _AnimatedOrNormalContainer(
+        enable: widget.enableRowColorAnimation,
+        decoration: _getBoxDecoration(),
+        child: widget.child,
+      ),
     );
   }
 }
