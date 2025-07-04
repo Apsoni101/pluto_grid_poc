@@ -198,6 +198,9 @@ class PlutoGridConfiguration {
 
 class PlutoGridStyleConfig {
   const PlutoGridStyleConfig({
+    this.dragTargetIndicatorColor = Colors.blueAccent,
+    this.dragTargetIndicatorThickness = 3.0,
+    this.dragTargetIndicatorPadding = EdgeInsets.zero,
     this.enableSelectedRowBorder = true,
     this.selectedRowBorderColor = const Color(0xFF2196F3),
     this.rowHoverColor = const Color(0x10000000),
@@ -257,6 +260,9 @@ class PlutoGridStyleConfig {
   });
 
   const PlutoGridStyleConfig.dark({
+    this.dragTargetIndicatorColor = Colors.blueAccent,
+    this.dragTargetIndicatorThickness = 3.0,
+    this.dragTargetIndicatorPadding = EdgeInsets.zero,
     this.enableSelectedRowBorder = true, // Add this line
     this.selectedRowBorderColor = const Color(0xFF2196F3), // Light blue default
     this.rowHoverColor = const Color(0x10000000),
@@ -314,6 +320,15 @@ class PlutoGridStyleConfig {
     this.gridBorderRadius = BorderRadius.zero,
     this.gridPopupBorderRadius = BorderRadius.zero,
   });
+
+  /// Color of the indicator line that shows where a dragged row will be dropped
+  final Color dragTargetIndicatorColor;
+
+  /// Thickness of the drop indicator line
+  final double dragTargetIndicatorThickness;
+
+  /// Padding around the drop indicator line
+  final EdgeInsets dragTargetIndicatorPadding;
 
   /// Enable borderShadow in [PlutoGrid].
   final bool enableGridBorderShadow;
@@ -511,12 +526,21 @@ class PlutoGridStyleConfig {
     IconData? rowGroupEmptyIcon,
     BorderRadiusGeometry? gridBorderRadius,
     BorderRadiusGeometry? gridPopupBorderRadius,
+    Color? dragTargetIndicatorColor,
+    double? dragTargetIndicatorThickness,
+    EdgeInsets? dragTargetIndicatorPadding,
   }) {
     return PlutoGridStyleConfig(
+      dragTargetIndicatorColor:
+          dragTargetIndicatorColor ?? this.dragTargetIndicatorColor,
+      dragTargetIndicatorThickness:
+          dragTargetIndicatorThickness ?? this.dragTargetIndicatorThickness,
+      dragTargetIndicatorPadding:
+          dragTargetIndicatorPadding ?? this.dragTargetIndicatorPadding,
       selectedRowBorderColor:
-      selectedRowBorderColor ?? this.selectedRowBorderColor,
+          selectedRowBorderColor ?? this.selectedRowBorderColor,
       enableSelectedRowBorder:
-      enableSelectedRowBorder ?? this.enableSelectedRowBorder,
+          enableSelectedRowBorder ?? this.enableSelectedRowBorder,
       enableGridBorderShadow:
           enableGridBorderShadow ?? this.enableGridBorderShadow,
       enableColumnBorderVertical:
@@ -629,12 +653,18 @@ class PlutoGridStyleConfig {
             gridBorderRadius == other.gridBorderRadius &&
             gridPopupBorderRadius == other.gridPopupBorderRadius &&
             selectedRowBorderColor == other.selectedRowBorderColor &&
-            enableSelectedRowBorder == other.enableSelectedRowBorder;
-    ;
+            enableSelectedRowBorder == other.enableSelectedRowBorder &&
+            dragTargetIndicatorColor == other.dragTargetIndicatorColor &&
+            dragTargetIndicatorThickness ==
+                other.dragTargetIndicatorThickness &&
+            dragTargetIndicatorPadding == other.dragTargetIndicatorPadding;
   }
 
   @override
   int get hashCode => Object.hashAll([
+        dragTargetIndicatorColor,
+        dragTargetIndicatorThickness,
+        dragTargetIndicatorPadding,
         selectedRowBorderColor,
         enableSelectedRowBorder,
         enableGridBorderShadow,

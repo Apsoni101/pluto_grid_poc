@@ -58,7 +58,8 @@ class PlutoBaseRow extends StatelessWidget {
     );
   }
 
-  PlutoVisibilityLayoutId _makeCell(PlutoColumn column) {
+
+  PlutoVisibilityLayoutId _makeCell(PlutoColumn column,) {
     return PlutoVisibilityLayoutId(
       id: column.field,
       child: PlutoBaseCell(
@@ -72,45 +73,70 @@ class PlutoBaseRow extends StatelessWidget {
     );
   }
 
-  Widget _dragTargetBuilder(dragContext, candidate, rejected) {
-    return _RowContainerWidget(
-      stateManager: stateManager,
-      rowIdx: rowIdx,
-      row: row,
-      enableRowColorAnimation:
-          stateManager.configuration.style.enableRowColorAnimation,
-      key: ValueKey('rowContainer_${row.key}'),
-      child: visibilityLayout
-          ? PlutoVisibilityLayout(
-              key: ValueKey('rowContainer_${row.key}_row'),
-              delegate: _RowCellsLayoutDelegate(
-                stateManager: stateManager,
-                columns: columns,
-                textDirection: stateManager.textDirection,
-              ),
-              scrollController: stateManager.scroll.bodyRowsHorizontal!,
-              initialViewportDimension: MediaQuery.of(dragContext).size.width,
-              children: columns.map(_makeCell).toList(growable: false),
-            )
-          : CustomMultiChildLayout(
-              key: ValueKey('rowContainer_${row.key}_row'),
-              delegate: _RowCellsLayoutDelegate(
-                stateManager: stateManager,
-                columns: columns,
-                textDirection: stateManager.textDirection,
-              ),
-              children: columns.map(_makeCell).toList(growable: false),
-            ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return DragTarget<PlutoRow>(
+    final dragTarget = DragTarget<PlutoRow>(
       onWillAcceptWithDetails: _handleOnWillAccept,
       onAcceptWithDetails: _handleOnAccept,
-      builder: _dragTargetBuilder,
+      onMove: (details) {
+        final offset = details.offset;
+        final renderBox = context.findRenderObject() as RenderBox;
+        final localPosition = renderBox.globalToLocal(offset);
+        final isTopHalf = localPosition.dy < renderBox.size.height / 2;
+
+        stateManager.setDragTargetRowIdx(
+          rowIdx,
+          isTopHalf: isTopHalf,
+        );
+      },
+      onLeave: (data) {
+        stateManager.setDragTargetRowIdx(null);
+      },
+      builder: (context, candidateData, rejectedData) {
+
+
+
+        return _RowContainerWidget(
+          stateManager: stateManager,
+          rowIdx: rowIdx,
+          row: row,
+          enableRowColorAnimation:
+          stateManager.configuration.style.enableRowColorAnimation,
+          key: ValueKey('rowContainer_${row.key}'),
+          child: visibilityLayout
+              ? PlutoVisibilityLayout(
+            key: ValueKey('rowContainer_${row.key}_row'),
+            delegate: _RowCellsLayoutDelegate(
+              stateManager: stateManager,
+              columns: columns,
+              textDirection: stateManager.textDirection,
+            ),
+            scrollController: stateManager.scroll.bodyRowsHorizontal!,
+            initialViewportDimension: MediaQuery.of(context).size.width,
+            children: columns.map((column) {
+              return _makeCell(
+                column,
+              );
+            }).toList(growable: false),
+          )
+              : CustomMultiChildLayout(
+            key: ValueKey('rowContainer_${row.key}_row'),
+            delegate: _RowCellsLayoutDelegate(
+              stateManager: stateManager,
+              columns: columns,
+              textDirection: stateManager.textDirection,
+            ),
+            children: columns.map((column) {
+              return _makeCell(
+                column,
+              );
+            }).toList(growable: false),
+          ),
+        );
+      },
     );
+
+    return dragTarget;
   }
 }
 
@@ -269,7 +295,6 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
       }
     }
 
-    // Apply hover effect if this row is the hovered row
     if (stateManager.isRowHovered(widget.row) &&
         stateManager.configuration.enableRowHoverColor) {
       color = Color.alphaBlend(
@@ -288,7 +313,7 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
     final bool isSelecting = stateManager.isSelecting;
     final bool isCheckedRow = widget.row.checked == true;
     final alreadyTarget = stateManager.dragRows
-            .firstWhereOrNull((element) => element.key == widget.row.key) !=
+        .firstWhereOrNull((element) => element.key == widget.row.key) !=
         null;
     final isDraggingRow = stateManager.isDraggingRow;
     final bool isDragTarget = isDraggingRow &&
@@ -313,40 +338,45 @@ class _RowContainerWidgetState extends PlutoStateWithChange<_RowContainerWidget>
     final bool isSelectedRow = stateManager.selectingMode.isRow &&
         stateManager.isSelectedRow(widget.row.key);
     final bool showSelectedBorder = stateManager
-            .configuration.style.enableSelectedRowBorder &&
+        .configuration.style.enableSelectedRowBorder &&
         (isSelectedRow || (isCurrentRow && !stateManager.selectingMode.isRow));
 
-    final BorderSide topBorder = isTopDragTarget
+    BorderSide topBorder = showSelectedBorder
         ? BorderSide(
-            width: PlutoGridSettings.rowBorderWidth,
-            color: stateManager.configuration.style.activatedBorderColor,
-          )
-        : showSelectedBorder
-            ? BorderSide(
-                width: PlutoGridSettings.rowBorderWidth,
-                color: stateManager.configuration.style.selectedRowBorderColor,
-              )
-            : BorderSide.none;
+      width: PlutoGridSettings.rowBorderWidth,
+      color: stateManager.configuration.style.selectedRowBorderColor,
+    )
+        : BorderSide.none;
 
-    final BorderSide bottomBorder = isBottomDragTarget
+    BorderSide bottomBorder = stateManager
+        .configuration.style.enableCellBorderHorizontal
         ? BorderSide(
-            width: PlutoGridSettings.rowBorderWidth,
-            color: stateManager.configuration.style.activatedBorderColor,
-          )
-        : stateManager.configuration.style.enableCellBorderHorizontal
-            ? BorderSide(
-                width: PlutoGridSettings.rowBorderWidth,
-                color: showSelectedBorder
-                    ? stateManager.configuration.style.selectedRowBorderColor
-                    : stateManager.configuration.style.borderColor,
-              )
-            : showSelectedBorder
-                ? BorderSide(
-                    width: PlutoGridSettings.rowBorderWidth,
-                    color:
-                        stateManager.configuration.style.selectedRowBorderColor,
-                  )
-                : BorderSide.none;
+      width: PlutoGridSettings.rowBorderWidth,
+      color: showSelectedBorder
+          ? stateManager.configuration.style.selectedRowBorderColor
+          : stateManager.configuration.style.borderColor,
+    )
+        : showSelectedBorder
+        ? BorderSide(
+      width: PlutoGridSettings.rowBorderWidth,
+      color: stateManager.configuration.style.selectedRowBorderColor,
+    )
+        : BorderSide.none;
+
+    if (isDragTarget) {
+      if (isTopDragTarget) {
+        topBorder = BorderSide(
+          width: stateManager.configuration.style.dragTargetIndicatorThickness,
+          color: stateManager.configuration.style.dragTargetIndicatorColor,
+        );
+      }
+      if (isBottomDragTarget) {
+        bottomBorder = BorderSide(
+          width: stateManager.configuration.style.dragTargetIndicatorThickness,
+          color: stateManager.configuration.style.dragTargetIndicatorColor,
+        );
+      }
+    }
 
     return BoxDecoration(
       color: rowColor,
